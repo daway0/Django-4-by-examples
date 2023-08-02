@@ -1,9 +1,18 @@
 from django.db import models
+from django.db.models.query import QuerySet
 from django.utils import timezone
 from django.contrib.auth.models import User
 
 
+class PostPublishedManager(models.Manager):
+    """Just published posts"""
+    def get_queryset(self) -> QuerySet:
+        return super().get_queryset().filter(status=Post.Status.PUBLISHED)
+
+
 class Post(models.Model):
+    published = PostPublishedManager()
+
     class Status(models.TextChoices):
         DRAFT = "DF", "Draft"
         PUBLISHED = "PB", "Published"
