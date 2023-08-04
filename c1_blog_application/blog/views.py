@@ -1,15 +1,16 @@
 from django.shortcuts import render, get_object_or_404
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.mail import send_mail
+from django.views.decorators.http import require_POST
 
-from .models import Post
-from .forms import EmailPostForm
+from .models import Post, Comment
+from .forms import EmailPostForm, CommentForm
 from mysite.settings import DEFAULT_FROM_EMAIL
 
 
 def post_list(r):
     posts = Post.published.all()
-    paginator = Paginator(posts, 1)
+    paginator = Paginator(posts, 5)
 
     page_number = r.GET.get("page", 1)
     try:
@@ -30,7 +31,13 @@ def post_detail(r, year, month, day, slug):
         publish__month=month,
         publish__day=day,
     )
-    return render(r, "blog/post/detail.html", {"post": post})
+    comments = post.comments.filter(active=True)
+    form = CommentForm()
+    return render(
+        r,
+        "blog/post/detail.html",
+        {"post": post, "comments": comments, "form": form},
+    )
 
 
 def post_share(r, post_id):
@@ -51,3 +58,19 @@ def post_share(r, post_id):
     else:
         form = EmailPostForm()
     return render(r, "blog/post/share.html", {"post": post, "form": form, "sent": sent})
+
+
+@require_POST
+def post_comment(r, post_id):
+    post = get_object_or_404(Post, id=post_id, status=Post.Status.PUBLISHED)
+    form = CommentForm(r.POST)
+    comment = None
+
+    if form.is_valid():
+        comment = form.save(commit=False)
+        comment.post = post
+        comment.save()
+
+    return render(
+        r, "blog/post/comment.html", {"post": post, "form": form, "comment": comment}
+    )
