@@ -3,15 +3,22 @@ from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.core.mail import send_mail
 from django.views.decorators.http import require_POST
 
+from taggit.models import Tag
+
 from .models import Post, Comment
 from .forms import EmailPostForm, CommentForm
 from mysite.settings import DEFAULT_FROM_EMAIL
 
 
-def post_list(r):
-    posts = Post.published.all()
-    paginator = Paginator(posts, 5)
+def post_list(r, tag_slug=None):
+    tag = None
+    if tag_slug:
+        tag = get_object_or_404(Tag, slug=tag_slug)
+        posts = Post.published.filter(tags__in=[tag])
+    else:
+        posts = Post.published.all()
 
+    paginator = Paginator(posts, 5)
     page_number = r.GET.get("page", 1)
     try:
         posts_page = paginator.page(page_number)
@@ -19,7 +26,7 @@ def post_list(r):
         posts_page = paginator.page(paginator.num_pages)
     except PageNotAnInteger:
         posts_page = paginator.page(1)
-    return render(r, "blog/post/list.html", {"posts_page": posts_page})
+    return render(r, "blog/post/list.html", {"posts_page": posts_page, "tag": tag})
 
 
 def post_detail(r, year, month, day, slug):

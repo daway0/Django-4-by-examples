@@ -4,6 +4,8 @@ from django.utils import timezone
 from django.contrib.auth.models import User
 from django.urls import reverse
 
+from taggit.managers import TaggableManager
+
 
 class PostPublishedManager(models.Manager):
     """Just published posts"""
@@ -19,6 +21,7 @@ class ActiveCommentManager(models.Manager):
 
 class Post(models.Model):
     published = PostPublishedManager()
+    tags = TaggableManager()
 
     class Status(models.TextChoices):
         DRAFT = "DF", "Draft"
